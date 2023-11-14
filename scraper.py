@@ -80,24 +80,24 @@ def generate_embed(item: Any, sub_id: int, item_res: Any) -> hikari.Embed:
     else:
         currency = " " + str(item["currency"])
     embed = hikari.Embed()
-    embed.title = item["title"] or "Unknown"
-    embed.url = item["url"] or "Unknown"
-    embed.set_image(item["photo"]["url"] or "Unknown")
+    embed.title = item["title"]
+    embed.url = item["url"]
+    embed.set_image(item["photo"]["url"])
     embed.color = hikari.Color(0x09B1BA)
-    embed.add_field("💵 Prix","```" + str(item["price"]) + currency + "```" or "Unknown", inline=True)
-    embed.add_field("✨ Etat","```" + item_res["item"]["status"] + "```"or "Unknown", inline=True)
-    embed.add_field("🫅 Avis","```👍" + str(item_res["item"]["user"]["positive_feedback_count"]) + " - 👎" + str(item_res["item"]["user"]["negative_feedback_count"]) + "```"or "Unknown", inline=True)
-    embed.add_field(":label: Marque","```" + item_res["item"]["brand"] + "```"or "Unknown", inline=True)
-    embed.add_field("📏 Taille","```" + item["size_title"] + "```" or "Unknown", inline=True)
-    embed.add_field("📍 Loc","```" + item_res["item"]["user"]["city"] + " (" + item_res["item"]["user"]["country_title"] + ")" + "```" or "Unknown", inline=True)
+    embed.add_field("💵 Prix","```" + str(item["price"]) + currency + " | " + str(item_res["item"]["total_item_price"]) + currency + "```", inline=True)
+    embed.add_field("✨ Etat","```" + item_res["item"]["status"] + "```", inline=True)
+    embed.add_field("🫅 Avis","```👍" + str(item_res["item"]["user"]["positive_feedback_count"]) + " - 👎" + str(item_res["item"]["user"]["negative_feedback_count"]) + "```", inline=True)
+    embed.add_field(":label: Marque","```" + item_res["item"]["brand"] + "```", inline=True)
+    embed.add_field("📏 Taille","```" + item["size_title"] + "```", inline=True)
+    embed.add_field("📍 Loc","```" + item_res["item"]["user"]["city"] + " (" + item_res["item"]["user"]["country_title"] + ")" + "```", inline=True)
     
     date = datetime.fromtimestamp(
         int(item["photo"]["high_resolution"]["timestamp"])
     ).strftime("%d/%m/%Y, %H:%M:%S")
-    embed.set_footer(f'Published on {date or "unknown"} • Subscription #{str(sub_id)}')
+    embed.set_footer(f'Published on {date} • Subscription #{str(sub_id)}')
     embed.set_author(
-        name="Posted by " + item["user"]["login"] or "unknown",
-        url=item["user"]["profile_url"] or "unknown",
+        name="Posted by " + item["user"]["login"],
+        url=item["user"]["profile_url"],
     )
 
     return embed
