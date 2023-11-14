@@ -114,6 +114,7 @@ async def subscriptions(ctx: lightbulb.Context) -> None:
 @lightbulb.implements(lightbulb.SlashCommand)
 async def reboot(ctx: lightbulb.Context) -> None:
     await ctx.respond("✅ Restarting Vinted BOT")
+    os.system("python3 /home/vinted/vintedpy/reboot.py")
 
 
 @bot.command()
