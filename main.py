@@ -18,7 +18,7 @@ table = db["subscriptions"]
 
 async def run_background() -> None:
     log.info("Scraper started.")
-    await bot.rest.create_message(os.getenv("CATEGORY_ID"), "bot started succesfully")
+    await bot.rest.create_message(os.getenv("CATEGORY_ID"), embed=hikari.Embed(title="✅ BOT Started succesfully"))
     while True:
         log.info("Executing scraping loop")
         for sub in db["subscriptions"]:
