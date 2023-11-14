@@ -18,12 +18,10 @@ table = db["subscriptions"]
 
 async def run_background() -> None:
     log.info("Scraper started.")
-
+    await bot.rest.create_message(os.getenv("CATEGORY_ID"), "bot started succesfully")
     while True:
         log.info("Executing scraping loop")
         for sub in db["subscriptions"]:
-            print(sub)
-            print(db)
             items = scrape(db, sub)
             if items:
                 log.debug("{items} found for {id}", items=len(items), id=str(sub["id"]))
