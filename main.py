@@ -119,9 +119,25 @@ async def reboot(ctx: lightbulb.Context) -> None:
 @lightbulb.command("unsubscribe", "Stop following a subscription")
 @lightbulb.implements(lightbulb.SlashCommand)
 async def unsubscribe(ctx: lightbulb.Context) -> None:
-    table.delete(id=ctx.options.id)
-    log.info("Deleted subscription #{id}", id=str(ctx.options.id))
-    await ctx.respond(f"🗑 Deleted subscription #{str(ctx.options.id)}.")
+    subscription_id = ctx.options.id
+    subscription = table.find_one(id=subscription_id)
+
+    if subscription:
+        # Supprimer l'alerte de la base de données
+        table.delete(id=subscription_id)
+
+        # Obtenir l'objet du canal à partir de l'ID du canal dans l'alerte
+        channel = bot.cache.get_guild(ctx.interaction.guild_id).get_channel(subscription["channel_id"])
+
+        if channel:
+            # Supprimer le canal
+            await channel.delete()
+            log.info("Deleted subscription #{id}", id=str(subscription_id))
+            await ctx.respond(f"🗑 Deleted subscription #{str(subscription_id)}.")
+        else:
+            await ctx.respond("❌ Error: Could not find the channel to delete.")
+    else:
+        await ctx.respond("❌ Error: Subscription not found with ID {id}.")
 
 
 if __name__ == "__main__":
