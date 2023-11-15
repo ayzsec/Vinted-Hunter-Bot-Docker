@@ -107,12 +107,18 @@ async def subscriptions(ctx: lightbulb.Context) -> None:
     await ctx.respond(embed)
 
 @bot.command()
-@lightbulb.command("reboot", "Reboot Vinted BOT and gets it to the latest update")
+@lightbulb.command("reboot", "Reboot Vinted BOT")
 @lightbulb.implements(lightbulb.SlashCommand)
 async def reboot(ctx: lightbulb.Context) -> None:
     await ctx.respond("✅ Restarting Vinted BOT")
-    os.system("python3 /home/vinted/vintedpy/reboot.py")
+    os.popen("sudo -S %s"%("pkill -9 python && reboot"), 'w').write(os.getenv("PASS"))
 
+@bot.command()
+@lightbulb.command("update", "get Vinted BOT to the latest update")
+@lightbulb.implements(lightbulb.SlashCommand)
+async def update(ctx: lightbulb.Context) -> None:
+    os.system("cd /home/vinted/vintedpy && git pull")
+    await ctx.respond("✅ Successfully updated Vinted BOT")
 
 @bot.command()
 @lightbulb.option("id", "ID of the subscription", type=int, required=True)
