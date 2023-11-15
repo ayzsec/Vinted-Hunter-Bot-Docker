@@ -109,15 +109,6 @@ def search(url: str, query: Dict[str, str] = {}) -> Dict[str, Any]:
             'Accept-Language': 'fr-FR'
         }
     )
-
-    if response.status_code == 200:
-    # Analyser la réponse JSON
-        data = response.json()
-
-    # Modifier l'URL dans les données
-        for item in data.get("items", []):
-            if "url" in item:
-                item["url"] = item["url"].replace("vinted.nl", "vinted.fr")
     
     if response.status_code != 200:
         return False
