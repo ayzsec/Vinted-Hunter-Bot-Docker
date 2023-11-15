@@ -84,7 +84,6 @@ def generate_embed(item: Any, sub_id: int, item_res: Any) -> hikari.Embed:
     embed.url = item["url"]
     embed.set_image(item["photo"]["url"])
     embed.color = hikari.Color(0x09B1BA)
-    embed.add_field("💵 test","``` TTC ```", inline=True)
     embed.add_field("💵 Prix","```" + str(item["price"]) + currency + " | " + str(item_res["item"]["total_item_price"]) + currency + " TTC ```", inline=True)
     embed.add_field("✨ Etat","```" + item_res["item"]["status"] + "```", inline=True)
     embed.add_field("🫅 Avis","```👍" + str(item_res["item"]["user"]["positive_feedback_count"]) + " - 👎" + str(item_res["item"]["user"]["negative_feedback_count"]) + "```", inline=True)

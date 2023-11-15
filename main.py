@@ -57,6 +57,7 @@ async def ready_listener(_):
 @bot.command()
 @lightbulb.option("url", "URL to vinted search", type=str, required=True)
 @lightbulb.option("channel_name", "Name of the channel for alerts", type=str, required=True)
+@lightbulb.option("category_id", "ID of category for alerts", type=int, required=True)
 @lightbulb.command("subscribe", "Subscribe to a Vinted search")
 @lightbulb.implements(lightbulb.SlashCommand)
 async def subscribe(ctx: lightbulb.Context) -> None:
@@ -69,7 +70,7 @@ async def subscribe(ctx: lightbulb.Context) -> None:
 
         if guild:
             # Récupérer l'ID de la catégorie "alertes vinted" depuis les variables d'environnement
-            category_id = os.getenv("CATEGORY_ID")
+            category_id = ctx.options.category_id
 
             if category_id:
                 # Vérifier si la catégorie existe dans le serveur (guild)
@@ -111,14 +112,7 @@ async def subscriptions(ctx: lightbulb.Context) -> None:
 @lightbulb.implements(lightbulb.SlashCommand)
 async def reboot(ctx: lightbulb.Context) -> None:
     await ctx.respond("✅ Restarting Vinted BOT")
-    os.popen("sudo -S %s"%("pkill -9 python && reboot"), 'w').write(os.getenv("PASS"))
-
-@bot.command()
-@lightbulb.command("update", "get Vinted BOT to the latest update")
-@lightbulb.implements(lightbulb.SlashCommand)
-async def update(ctx: lightbulb.Context) -> None:
-    os.system("cd /home/vinted/vintedpy && git pull")
-    await ctx.respond("✅ Successfully updated Vinted BOT")
+    os.popen("sudo -S %s"%("reboot"), 'w').write(os.getenv("PASS"))
 
 @bot.command()
 @lightbulb.option("id", "ID of the subscription", type=int, required=True)
