@@ -57,7 +57,7 @@ async def ready_listener(_):
 @bot.command()
 @lightbulb.option("url", "URL to vinted search", type=str, required=True)
 @lightbulb.option("channel_name", "Name of the channel for alerts", type=str, required=True)
-@lightbulb.option("category_id", "ID of category for alerts", type=int, required=True)
+@lightbulb.option("category_id", "ID of category for alerts", type=str, required=True)
 @lightbulb.command("subscribe", "Subscribe to a Vinted search")
 @lightbulb.implements(lightbulb.SlashCommand)
 async def subscribe(ctx: lightbulb.Context) -> None:
