@@ -111,7 +111,7 @@ async def subscriptions(ctx: lightbulb.Context) -> None:
 @lightbulb.command("reboot", "Reboot Vinted BOT")
 @lightbulb.implements(lightbulb.SlashCommand)
 async def reboot(ctx: lightbulb.Context) -> None:
-    await ctx.respond("✅ Restarting Vinted BOT")
+    await ctx.respond("✅ Restarting Vinted BOT...")
     await bot.close()
     os.popen("sudo -S %s"%("reboot"), 'w').write(os.getenv("PASS"))
 
