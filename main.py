@@ -43,8 +43,8 @@ async def run_background() -> None:
                     ["id"],
                 )
 
-        log.info("Sleeping for {interval} seconds", interval=os.getenv("INTERVAL", 60))
-        await asyncio.sleep(int(os.getenv("INTERVAL", 60)))
+        log.info("Sleeping for {interval} seconds", interval=60)
+        await asyncio.sleep(int(60))
 
 
 @bot.listen(hikari.ShardReadyEvent)
