@@ -1,7 +1,7 @@
 import asyncio
 import os
 import dataset
-import dotenv
+import json
 import hikari
 import lightbulb
 from loguru import logger as log
@@ -9,9 +9,12 @@ from api import search_item
 
 from scraper import generate_embed, scrape
 
-dotenv.load_dotenv()
+def load_config():
+    with open('config.json') as config_file:
+        return json.load(config_file)
 
-bot = lightbulb.BotApp(token=os.getenv("TOKEN"))
+config = load_config()
+bot = lightbulb.BotApp(token=config["discord_token"])
 db = dataset.connect("sqlite:///data.db")
 table = db["subscriptions"]
 
