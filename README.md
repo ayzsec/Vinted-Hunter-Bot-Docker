@@ -21,10 +21,11 @@ A Discord bot designed to automate alerts for Vinted searches. This bot scrapes 
    pip install -r requirements.txt
    ```
 
-3. Set up your `.env` file with your Discord bot token and other environment variables:
-   ```env
-   TOKEN=your_discord_bot_token
-   PASS=your_system_password
+3. Set up your `config.json` file with your Discord bot token and other environment variables:
+   ```json
+   {
+      "discord_token": "YOUR BOT TOKEN"
+   }
    ```
 
 4. Run the bot:
@@ -47,7 +48,7 @@ A Discord bot designed to automate alerts for Vinted searches. This bot scrapes 
 - `lightbulb`
 - `loguru`
 - `dataset`
-- `dotenv`
+- `requests`
 - `uvloop` (for non-Windows users)
 
 ## License
