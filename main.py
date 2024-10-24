@@ -33,33 +33,39 @@ async def run_background() -> None:
                             item_res = search_item(item["id"])
                             if item_res:
                                 if str(item_res["item"]["user"]["feedback_count"]) != "0":
-                                    embed = generate_embed(item, sub["id"], item_res)
-                                    log.debug("Attempting to send message to channel {channel}", channel=sub["channel_id"])
                                     try:
+                                        embed = generate_embed(item, sub["id"], item_res)
+                                        log.debug("Sending message to channel {channel} for item {item}", 
+                                                 channel=sub["channel_id"], item=item["id"])
                                         await bot.rest.create_message(sub["channel_id"], embed=embed)
-                                        log.info("Successfully sent message for item {item} to channel {channel}", 
-                                               item=item["id"], channel=sub["channel_id"])
-                                    except hikari.ForbiddenError:
-                                        log.error("Bot doesn't have permission to send messages in channel {channel}", 
-                                                channel=sub["channel_id"])
-                                    except hikari.NotFoundError:
-                                        log.error("Channel {channel} not found", channel=sub["channel_id"])
+                                        log.info("Successfully sent message for item {item}", item=item["id"])
+                                    except hikari.ForbiddenError as e:
+                                        log.error("Bot lacks permissions in channel {channel}: {error}", 
+                                                 channel=sub["channel_id"], error=str(e))
+                                    except hikari.NotFoundError as e:
+                                        log.error("Channel {channel} not found: {error}", 
+                                                 channel=sub["channel_id"], error=str(e))
                                     except Exception as e:
-                                        log.error("Error sending message: {error}", error=str(e))
+                                        log.error("Failed to send message: {error}", error=str(e))
                         except Exception as e:
-                            log.error("Error processing item {item}: {error}", item=item["id"], error=str(e))
+                            log.error("Error processing item {item}: {error}", 
+                                     item=item["id"], error=str(e))
+                            continue
+            except Exception as e:
+                log.error("Error in scraping loop: {error}", error=str(e))
+                continue
 
-            if len(items) > 0:
-                # Update table by using last in date item timestamp
-                table.update(
-                    {
-                        "id": sub["id"],
-                        "last_sync": int(
-                            items[0]["photo"]["high_resolution"]["timestamp"]
-                        ),
-                    },
-                    ["id"],
-                )
+        if len(items) > 0:
+            # Update table by using last in date item timestamp
+            table.update(
+                {
+                    "id": sub["id"],
+                    "last_sync": int(
+                        items[0]["photo"]["high_resolution"]["timestamp"]
+                    ),
+                },
+                ["id"],
+            )
 
         log.info("Sleeping for {interval} seconds", interval=60)
         await asyncio.sleep(int(60))
@@ -148,7 +154,7 @@ async def unsubscribe(ctx: lightbulb.Context) -> None:
         else:
             await ctx.respond("? Error: Could not find the channel to delete.")
     else:
-        await ctx.respond("? Error: Subscription not found with ID {id}.")
+        await ctx.respond("? Error: Subscription not found with ID {id}.", id=subscription_id)
 
 
 if __name__ == "__main__":
