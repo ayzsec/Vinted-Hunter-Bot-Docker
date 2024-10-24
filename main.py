@@ -24,15 +24,30 @@ async def run_background() -> None:
     while True:
         log.info("Executing scraping loop")
         for sub in db["subscriptions"]:
-            items = scrape(db, sub)
-            if items:
-                log.debug("{items} found for {id}", items=len(items), id=str(sub["id"]))
-                for item in items:
-                    item_res = search_item(item["id"])
-                    if item_res:
-                        if str(item_res["item"]["user"]["feedback_count"]) != "0":
-                            embed = generate_embed(item, sub["id"], item_res)
-                            await bot.rest.create_message(sub["channel_id"], embed=embed)
+            try:
+                items = scrape(db, sub)
+                if items:
+                    log.debug("{items} found for {id}", items=len(items), id=str(sub["id"]))
+                    for item in items:
+                        try:
+                            item_res = search_item(item["id"])
+                            if item_res:
+                                if str(item_res["item"]["user"]["feedback_count"]) != "0":
+                                    embed = generate_embed(item, sub["id"], item_res)
+                                    log.debug("Attempting to send message to channel {channel}", channel=sub["channel_id"])
+                                    try:
+                                        await bot.rest.create_message(sub["channel_id"], embed=embed)
+                                        log.info("Successfully sent message for item {item} to channel {channel}", 
+                                               item=item["id"], channel=sub["channel_id"])
+                                    except hikari.ForbiddenError:
+                                        log.error("Bot doesn't have permission to send messages in channel {channel}", 
+                                                channel=sub["channel_id"])
+                                    except hikari.NotFoundError:
+                                        log.error("Channel {channel} not found", channel=sub["channel_id"])
+                                    except Exception as e:
+                                        log.error("Error sending message: {error}", error=str(e))
+                        except Exception as e:
+                            log.error("Error processing item {item}: {error}", item=item["id"], error=str(e))
 
             if len(items) > 0:
                 # Update table by using last in date item timestamp
