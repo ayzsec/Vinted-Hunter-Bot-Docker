@@ -23,4 +23,4 @@ RUN mkdir -p /app/data
 ENV PYTHONUNBUFFERED=1
 
 # Command to run the bot
-CMD ["python", "main.py"]
+CMD ["python", "-O", "main.py"]

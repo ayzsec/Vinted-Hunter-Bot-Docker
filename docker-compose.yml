@@ -9,3 +9,4 @@ services:
     restart: unless-stopped
     environment:
       - PYTHONUNBUFFERED=1
+    command: ["python", "-O", "main.py"]
