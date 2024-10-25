@@ -1,11 +1,11 @@
 from typing import Any, Dict, List
-from dataset import Database
+from pymongo.database import Database
 import hikari
-from lightbulb import BotApp
 from datetime import datetime
 
 from api import search
 from loguru import logger as log
+from db import get_database, init_collections
 
 
 def scrape(db: Database, params: Dict[str, str]) -> List:
@@ -34,7 +34,7 @@ def scrape(db: Database, params: Dict[str, str]) -> List:
     if params["last_sync"] == -1:
         return [items[0]]
 
-    table = db["items"]
+    items_collection = db.items
 
     # Filter date and by existing
     results = []
@@ -47,19 +47,14 @@ def scrape(db: Database, params: Dict[str, str]) -> List:
             continue
 
         if timestamp > params["last_sync"] and "id" in item:
-            results.append(item)
-
-    for item in results:
-        saved = table.find_one(id=item["id"])
-        log.debug(saved)
-
-        if saved:
-            # Already known
-            log.debug("Removing result {id}, already known", id=item["id"])
-            results.remove(item)
-        else:
-            log.debug("Inserting item #{id}", id=item["id"])
-            table.insert({"id": item["id"]})
+            saved = items_collection.find_one({"id": item["id"]})
+            if not saved:
+                log.debug("Inserting item #{id}", id=item["id"])
+                items_collection.insert_one({"id": item["id"]})
+                results.append(item)
+            else:
+                log.debug("Removing result {id}, already known", id=item["id"])
+                results.remove(item)
 
     return results
 
@@ -71,33 +66,48 @@ def generate_embed(item: Any, sub_id: int, item_res: Any) -> hikari.Embed:
     Args:
         item (Any): Scraped item
         sub_id (int): Subscription ID
+        item_res (Any): Additional item details
 
     Returns:
         hikari.Embed: Generated embed
     """
-    if str(item["currency"]) == "EUR":
-        currency = "€"
-    else:
-        currency = " " + str(item["currency"])
-    embed = hikari.Embed()
-    embed.title = item["title"]
-    embed.url = item["url"]
-    embed.set_image(item["photo"]["url"])
-    embed.color = hikari.Color(0x09B1BA)
-    embed.add_field("💵 Prix","```" + str(item["price"]) + currency + " | " + str(item_res["item"]["total_item_price"]) + currency + " TTC ```", inline=True)
-    embed.add_field("✨ Etat","```" + item_res["item"]["status"] + "```", inline=True)
-    embed.add_field("🫅 Avis","```👍" + str(item_res["item"]["user"]["positive_feedback_count"]) + " - 👎" + str(item_res["item"]["user"]["negative_feedback_count"]) + "```", inline=True)
-    embed.add_field(":label: Marque","```" + item_res["item"]["brand"] + "```", inline=True)
-    embed.add_field("📏 Taille","```" + item["size_title"] + "```", inline=True)
-    embed.add_field("📍 Loc","```" + item_res["item"]["user"]["city"] + " (" + item_res["item"]["user"]["country_title"] + ")" + "```", inline=True)
-    
-    date = datetime.fromtimestamp(
-        int(item["photo"]["high_resolution"]["timestamp"])
-    ).strftime("%d/%m/%Y, %H:%M:%S")
-    embed.set_footer(f'Published on {date} • Subscription #{str(sub_id)}')
-    embed.set_author(
-        name="Posted by " + item["user"]["login"],
-        url=item["user"]["profile_url"],
-    )
-
-    return embed
+    try:
+        if str(item["currency"]) == "EUR":
+            currency = "?"
+        else:
+            currency = " " + str(item["currency"])
+            
+        embed = hikari.Embed()
+        embed.title = item["title"]
+        embed.url = item["url"]
+        embed.set_image(item["photo"]["url"])
+        embed.color = hikari.Color(0x09B1BA)
+        
+        # Add fields with error handling
+        try:
+            embed.add_field("? Prix", 
+                          "```" + str(item["price"]) + currency + " | " + 
+                          str(item_res["item"]["total_item_price"]) + currency + " TTC ```", 
+                          inline=True)
+            embed.add_field("? Etat", "```" + item_res["item"]["status"] + "```", inline=True)
+            embed.add_field("? Avis", "```?" + 
+                          str(item_res["item"]["user"]["positive_feedback_count"]) + 
+                          " - ?" + str(item_res["item"]["user"]["negative_feedback_count"]) + 
+                          "```", inline=True)
+            embed.add_field(":label: Marque", "```" + item_res["item"]["brand"] + "```", inline=True)
+            embed.add_field("? Taille", "```" + item["size_title"] + "```", inline=True)
+            embed.add_field("? Loc", "```" + item_res["item"]["user"]["city"] + 
+                          " (" + item_res["item"]["user"]["country_title"] + ")" + "```", inline=True)
+            
+            date = datetime.fromtimestamp(int(item["photo"]["high_resolution"]["timestamp"])).strftime("%d/%m/%Y, %H:%M:%S")
+            embed.set_footer(f'Published on {date} ? Subscription #{str(sub_id)}')
+            embed.set_author(name="Posted by " + item["user"]["login"], 
+                           url=item["user"]["profile_url"])
+            
+            return embed
+        except KeyError as e:
+            log.error("Missing key in item data: {error}", error=str(e))
+            raise
+    except Exception as e:
+        log.error("Failed to generate embed: {error}", error=str(e))
+        raise

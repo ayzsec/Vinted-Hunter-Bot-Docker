@@ -1,7 +1,16 @@
 version: '3.8'
 
 services:
+  mongodb:
+    image: mongo:4.4.11-rc0-focal
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+
   bot:
+    depends_on:
+      - mongodb
     build: .
     volumes:
       - ./data:/app/data
@@ -9,4 +18,8 @@ services:
     restart: unless-stopped
     environment:
       - PYTHONUNBUFFERED=1
+      - MONGODB_URI=mongodb://mongodb:27017
     command: ["python", "-O", "main.py"]
+
+volumes:
+  mongodb_data:

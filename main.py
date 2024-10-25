@@ -1,12 +1,11 @@
 import asyncio
 import os
-import dataset
 import json
 import hikari
 import lightbulb
 from loguru import logger as log
 from api import search_item
-
+from db import get_database, init_collections
 from scraper import generate_embed, scrape
 
 def load_config():
@@ -15,36 +14,51 @@ def load_config():
 
 config = load_config()
 bot = lightbulb.BotApp(token=config["discord_token"])
-db = dataset.connect("sqlite:///data.db")
-table = db["subscriptions"]
-
+db = get_database()
+init_collections(db)
 
 async def run_background() -> None:
     log.info("Scraper started.")
     while True:
         log.info("Executing scraping loop")
-        for sub in db["subscriptions"]:
-            items = scrape(db, sub)
-            if items:
-                log.debug("{items} found for {id}", items=len(items), id=str(sub["id"]))
-                for item in items:
-                    item_res = search_item(item["id"])
-                    if item_res:
-                        if str(item_res["item"]["user"]["feedback_count"]) != "0":
-                            embed = generate_embed(item, sub["id"], item_res)
-                            await bot.rest.create_message(sub["channel_id"], embed=embed)
+        for sub in db.subscriptions.find():
+            try:
+                items = scrape(db, sub)
+                if items:
+                    log.debug("{items} found for {id}", items=len(items), id=str(sub["id"]))
+                    for item in items:
+                        try:
+                            item_res = search_item(item["id"])
+                            if item_res:
+                                if str(item_res["item"]["user"]["feedback_count"]) != "0":
+                                    try:
+                                        embed = generate_embed(item, sub["id"], item_res)
+                                        log.debug("Sending message to channel {channel} for item {item}", 
+                                                 channel=sub["channel_id"], item=item["id"])
+                                        await bot.rest.create_message(sub["channel_id"], embed=embed)
+                                        log.info("Successfully sent message for item {item}", item=item["id"])
+                                    except hikari.ForbiddenError as e:
+                                        log.error("Bot lacks permissions in channel {channel}: {error}", 
+                                                 channel=sub["channel_id"], error=str(e))
+                                    except hikari.NotFoundError as e:
+                                        log.error("Channel {channel} not found: {error}", 
+                                                 channel=sub["channel_id"], error=str(e))
+                                    except Exception as e:
+                                        log.error("Failed to send message: {error}", error=str(e))
+                        except Exception as e:
+                            log.error("Error processing item {item}: {error}", 
+                                     item=item["id"], error=str(e))
+                            continue
+            except Exception as e:
+                log.error("Error in scraping loop: {error}", error=str(e))
+                continue
 
-            if len(items) > 0:
-                # Update table by using last in date item timestamp
-                table.update(
-                    {
-                        "id": sub["id"],
-                        "last_sync": int(
-                            items[0]["photo"]["high_resolution"]["timestamp"]
-                        ),
-                    },
-                    ["id"],
-                )
+        if len(items) > 0:
+            # Update table by using last in date item timestamp
+            db.subscriptions.update_one(
+                {"id": sub["id"]},
+                {"$set": {"last_sync": int(items[0]["photo"]["high_resolution"]["timestamp"])}}
+            )
 
         log.info("Sleeping for {interval} seconds", interval=60)
         await asyncio.sleep(int(60))
@@ -53,7 +67,7 @@ async def run_background() -> None:
 @bot.listen(hikari.ShardReadyEvent)
 async def ready_listener(_):
     log.info("Bot is ready")
-    log.info("{count} subscriptions registered", count=table.count())
+    log.info("{count} subscriptions registered", count=db.subscriptions.count_documents({}))
     asyncio.create_task(run_background())
 
 
@@ -84,7 +98,7 @@ async def subscribe(ctx: lightbulb.Context) -> None:
                     new_channel = await guild.create_text_channel(ctx.options.channel_name, category=alert_category)
 
                     # Store the subscription in the database
-                    table.insert(
+                    db.subscriptions.insert_one(
                         {"url": ctx.options.url, "channel_id": new_channel.id, "last_sync": -1}
                     )
                     log.info("Subscription created for {url}", url=ctx.options.url)
@@ -105,7 +119,7 @@ async def subscribe(ctx: lightbulb.Context) -> None:
 async def subscriptions(ctx: lightbulb.Context) -> None:
     embed = hikari.Embed(title="Subscriptions")
 
-    for sub in table:
+    for sub in db.subscriptions.find():
         embed.add_field(name="#" + str(sub["id"]), value=sub["url"])
 
     await ctx.respond(embed)
@@ -116,11 +130,11 @@ async def subscriptions(ctx: lightbulb.Context) -> None:
 @lightbulb.implements(lightbulb.SlashCommand)
 async def unsubscribe(ctx: lightbulb.Context) -> None:
     subscription_id = ctx.options.id
-    subscription = table.find_one(id=subscription_id)
+    subscription = db.subscriptions.find_one({"id": subscription_id})
 
     if subscription:
         # Remove the alert from the database
-        table.delete(id=subscription_id)
+        db.subscriptions.delete_one({"id": subscription_id})
 
         # Retrieve the channel object from the channel ID in the alert
         channel = bot.cache.get_guild(ctx.interaction.guild_id).get_channel(subscription["channel_id"])
@@ -133,7 +147,7 @@ async def unsubscribe(ctx: lightbulb.Context) -> None:
         else:
             await ctx.respond("? Error: Could not find the channel to delete.")
     else:
-        await ctx.respond("? Error: Subscription not found with ID {id}.")
+        await ctx.respond("? Error: Subscription not found with ID {id}.", id=subscription_id)
 
 
 if __name__ == "__main__":
