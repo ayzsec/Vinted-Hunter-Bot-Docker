@@ -7,6 +7,8 @@ services:
       - "27017:27017"
     volumes:
       - mongodb_data:/data/db
+    networks:
+      - vinted-network
 
   bot:
     depends_on:
@@ -20,6 +22,11 @@ services:
       - PYTHONUNBUFFERED=1
       - MONGODB_URI=mongodb://mongodb:27017
     command: ["python", "-O", "main.py"]
+    networks:
+      - vinted-network
 
 volumes:
   mongodb_data:
+  
+networks:
+      - vinted-network
